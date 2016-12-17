@@ -68,9 +68,12 @@ def management(board, code):
     info.append(person)
   return pd.DataFrame(info)
 
-#股本结构
-def stockstructure(board, code):
-  url = "http://www.cninfo.com.cn/information/management/szmb000923.html"
+#十大股东
+def shareholders(code, circulate = False):
+  if circulate:
+    url = "http://www.cninfo.com.cn/information/shareholders/%s.html?www.cninfo.com.cn" % (code, )
+  else:
+    url = "http://www.cninfo.com.cn/information/circulateshareholders/%s.html?www.cninfo.com.cn" % (code, )
   r = utils.get(url)
   if r == None:
     return None
@@ -78,7 +81,65 @@ def stockstructure(board, code):
   soup = bs(r.text, "html5lib")
   tr = soup.select(".zx_left table tr")
 
+  info = []
+  date = None
+  attrs = ["date", "holder", "amount", "percent", "type"]
+  for t in range(len(tr)):
+    if t == 0:
+      continue
+    row = {}
+    td = tr[t].select("td")
+    if len(td) == 5:
+      for i in range(len(attrs)):
+        row[attrs[i]] = td[i].text
+      date = td[0].text
+    if len(td) == 4:
+      for i in range(len(attrs[1:])):
+        row[attrs[1:][i]] = td[i].text
+      row["date"] = date
+    row["holder"] = "".join(row["holder"].split(".")[1:])
+    info.append(row)
+  return pd.DataFrame(info)
 
+# 分红送转
+def dividend(board, code):
+  url = "http://www.cninfo.com.cn/information/dividend/%s%s.html" % (board, code)
+  r = utils.get(url)
+  if r == None:
+    return None
+  r.encoding = "gbk"
+  soup = bs(r.text, "html5lib")
+  tr = soup.select(".zx_left table tr")
 
+  info = []
+  attrs = ["date", "program", "reg_day", "div_day", "day_to_market"]
+  for t in range(len(tr)):
+    if t == 0:
+      continue
+    row = {}
+    for i in range(len(tr[t].select("td"))):
+      row[attrs[i]] = tr[t].select("td")[i].text.replace(" ", "").replace("\n", "")
+    info.append(row)
+  return pd.DataFrame(info)
 
-print management("szmb", "000923")
+# 配股
+def allotment(board, code):
+  url = "http://www.cninfo.com.cn/information/allotment/%s%s.html" % (board, code) 
+  r = utils.get(url)
+  if r == None:
+    return None
+  r.encoding = "gbk"
+  soup = bs(r.text, "html5lib")
+  tr = soup.select(".zx_left table tr")
+
+  info = []
+  attrs = ["date", "program", "price", "reg_date", "base_date", "pay_date", "day_to_market"]
+  for t in range(len(tr)):
+    if t == 0:
+      continue
+    row = {}
+    for i in range(len(tr[t].select("td"))):
+      row[attrs[i]] = tr[t].select("td")[i].text.replace(" ", "").replace("\n", "")
+    info.append(row)
+  return pd.DataFrame(info)
+
