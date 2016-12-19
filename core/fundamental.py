@@ -6,6 +6,7 @@ import utils
 import pandas as pd
 import numpy as np
 import requests
+import csv
 
 # 公司概况
 def brief(board, code):
@@ -144,20 +145,20 @@ def allotment(board, code):
     info.append(row)
   return pd.DataFrame(info)
 
-# 财务
-def financial_report(code, year, quarter):
-  url = "http://www.cninfo.com.cn/information/stock/financialreport_.jsp?stockCode=%s&key=%s" %(code, np.random.uniform(0, 1))
-  data = {}
-  q = {1: "-03-31", 2:"-06-30", 3:"-09-30", 4:"-12-31"}
-  data["yyyy"] = year
-  data["mm"] = q[quarter]
-  data["cwzb"] = "financialreport"
-  data["button2"] = u"提交".encode("gbk")
-  headers = {"User-Agent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36", "referer": "http://www.cninfo.com.cn/information/stock/financialreport_.jsp?stockCode=000001&key=0.22836368174212307"}
-  r = requests.post(url, data=data, headers = headers)
-  r = requests.get(url, cookies=dict(JSESSIONID=r.cookies['JSESSIONID']), headers=headers)
-  soup = bs(r.text, "html5lib")
-  tr = soup.select(".zx_left table tr")
-  print r.text
+# 主要财务指标
+def net_income(code):
+  url = "http://quotes.money.163.com/f10/zycwzb_%s.html?type=report" % (code, )
+  url = "http://quotes.money.163.com/service/zycwzb_%s.html?type=report" % (code)
+  r = requests.get(url, stream=True)
+  if r == None:
+    return None
+  text = r.iter_lines()
+  reader = csv.reader(text, delimiter=',')
+  column = [row[0] for row in reader if len(row) > 3]
 
-print financial_report("000002", "2016", 1)
+  text = r.iter_lines()
+  reader = csv.reader(text, delimiter=',')
+  data = pd.DataFrame([row[1:] for row in reader if len(row) > 3]).T
+  return column, data
+
+print net_income("300510")
