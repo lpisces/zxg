@@ -8,6 +8,10 @@ import numpy as np
 import requests
 import csv
 
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
+
 # 公司概况
 def brief(board, code):
   url = "http://www.cninfo.com.cn/information/brief/%s%s.html" % (board, code)
@@ -145,20 +149,116 @@ def allotment(board, code):
     info.append(row)
   return pd.DataFrame(info)
 
-# 主要财务指标
-def net_income(code):
-  url = "http://quotes.money.163.com/f10/zycwzb_%s.html?type=report" % (code, )
-  url = "http://quotes.money.163.com/service/zycwzb_%s.html?type=report" % (code)
+# 财务指标
+
+def _finance(code, part = "", t = "report"):
+  url = "http://quotes.money.163.com/service/zycwzb_%s.html?type=%s&part=%s" % (code, t, part)
   r = requests.get(url, stream=True)
   if r == None:
     return None
   text = r.iter_lines()
   reader = csv.reader(text, delimiter=',')
-  column = [row[0] for row in reader if len(row) > 3]
+  column = []
+  data = []
+  for row in reader:
+    if len(row) < 3:
+      continue
+    column.append(row[0].decode("gbk"))
+    data.append(row[1:])
+  data = pd.DataFrame(data).T
+  return column[1:], data
 
+# 主要财务指标
+def net_income(code):
+  return _finance(code)
+
+# 盈利能力
+def earning(code):
+  return _finance(code, part = "ylnl")
+
+# 偿还能力
+def repayment(code):
+  return _finance(code, part = "chnl")
+
+# 成长能力
+def growth(code):
+  return _finance(code, part = "cznl")
+
+# 运营能力
+def operation(code):
+  return _finance(code, part = "yynl")
+
+# 财报摘要
+def summary(code):
+  url = "http://quotes.money.163.com/service/cwbbzy_%s.html" % (code, )
+  r = requests.get(url, stream=True)
+  if r == None:
+    return None
   text = r.iter_lines()
   reader = csv.reader(text, delimiter=',')
-  data = pd.DataFrame([row[1:] for row in reader if len(row) > 3]).T
-  return column, data
+  column = []
+  data = []
+  for row in reader:
+    if len(row) < 3:
+      continue
+    column.append(row[0].decode("gbk"))
+    data.append(row[1:])
+  data = pd.DataFrame(data).T
+  return column[1:], data
 
-print net_income("300510")
+# 资产负债表
+def balance_sheet(code):
+  url = "http://quotes.money.163.com/service/zcfzb_%s.html" % (code, )
+  r = requests.get(url, stream=True)
+  if r == None:
+    return None
+  text = r.iter_lines()
+  reader = csv.reader(text, delimiter=',')
+  column = []
+  data = []
+  for row in reader:
+    if len(row) < 3:
+      continue
+    column.append(row[0].decode("gbk"))
+    data.append(row[1:])
+  data = pd.DataFrame(data).T
+  return column[1:], data
+
+# 利润表
+def income_statement(code):
+  url = "http://quotes.money.163.com/service/lrb_%s.html" % (code, )
+  r = requests.get(url, stream=True)
+  if r == None:
+    return None
+  text = r.iter_lines()
+  reader = csv.reader(text, delimiter=',')
+  column = []
+  data = []
+  for row in reader:
+    if len(row) < 3:
+      continue
+    column.append(row[0].decode("gbk"))
+    data.append(row[1:])
+  data = pd.DataFrame(data).T
+  return column[1:], data
+
+# 现金流量表
+def cash_flow_statement(code):
+  url = "http://quotes.money.163.com/service/xjllb_%s.html" % (code, )
+  r = requests.get(url, stream=True)
+  if r == None:
+    return None
+  text = r.iter_lines()
+  reader = csv.reader(text, delimiter=',')
+  column = []
+  data = []
+  for row in reader:
+    if len(row) < 3:
+      continue
+    column.append(row[0].decode("gbk"))
+    data.append(row[1:])
+  data = pd.DataFrame(data).T
+  return column[1:], data
+
+for i in cash_flow_statement("300510")[0]:
+  print i
